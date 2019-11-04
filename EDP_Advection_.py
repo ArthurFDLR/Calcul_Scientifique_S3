@@ -3,7 +3,7 @@ import matplotlib.pyplot as plt
 
 ## Methodes
 
-def GetSolution_Ordre1_DecentreArriere(CFL, NbrIteration = 500, L = 10, N = 100, paramA = 2.0):
+def GetSolution_Ordre1_DecentreArriere(CFL, NbrIteration = 500, L = 10, N = 1000, paramA = 2.0):
     
     deltaX = L/N
     deltaT = deltaX * (CFL / paramA)
@@ -35,7 +35,7 @@ def GetSolution_Ordre1_DecentreArriere(CFL, NbrIteration = 500, L = 10, N = 100,
     
     return phiCurrent 
 
-def GetSolution_Ordre1_DecentreAvant(CFL, NbrIteration = 500, L = 10, N = 100, paramA = 2.0):
+def GetSolution_Ordre1_DecentreAvant(CFL, NbrIteration = 500, L = 10, N = 1000, paramA = 2.0):
     
     deltaX = L/N
     deltaT = deltaX * (CFL / paramA)
@@ -68,7 +68,7 @@ def GetSolution_Ordre1_DecentreAvant(CFL, NbrIteration = 500, L = 10, N = 100, p
     
     return phiCurrent 
 
-def GetSolution_Ordre2_DecentreGauche(CFL, NbrIteration = 500, L = 10, N = 100, paramA = 2.0):
+def GetSolution_Ordre2_DecentreGauche(CFL, NbrIteration = 500, L = 10, N = 1000, paramA = 2.0):
     
     deltaX = L/N
     deltaT = deltaX * (CFL / paramA)
@@ -85,13 +85,13 @@ def GetSolution_Ordre2_DecentreGauche(CFL, NbrIteration = 500, L = 10, N = 100, 
     matriceEDP[1,N-1] = 1
     
     for i in range(2,N):
-        matriceEDP[i,i-2] = - (CFL/2.0)
-        matriceEDP[i,i] = 1.0 + (CFL/2.0)
+        matriceEDP[i,i-2] = (CFL/2.0)
+        matriceEDP[i,i] = 1.0 - (CFL/2.0)
     
     print(matriceEDP)
     
     # Initialisation conditions initiales
-    for i in range(int(0.8 * N), int(0.9 * N)):
+    for i in range(int(0.1 * N), int(0.2 * N)):
         phiCurrent[i] = 1.0
     phiInit = phiCurrent
     
@@ -101,7 +101,41 @@ def GetSolution_Ordre2_DecentreGauche(CFL, NbrIteration = 500, L = 10, N = 100, 
         phiCurrent = np.dot(matriceEDP,phiCurrent)
     
     return phiCurrent 
+
+def GetSolution_Ordre2_Centre(CFL, NbrIteration = 500, L = 10, N = 1000, paramA = 2.0):
     
+    deltaX = L/N
+    deltaT = deltaX * (CFL / paramA)
+    
+    print(str(deltaT)[:6] + "*" + str(NbrIteration) + " = " + str(deltaT * NbrIteration)[:6] + " secondes")
+    
+    # Definition matrice
+    phiCurrent = np.array(N*[0.0])
+    phiNext = np.array(N*[0.0])
+    matriceEDP = np.array(N*[N*[0.0]])
+    
+    # Initialisation matrice de calcul
+    matriceEDP[0,N-1] = 1
+    matriceEDP[N-1,0] = 1
+    
+    for i in range(2,N-1):
+        matriceEDP[i,i-1] = (CFL/2.0)
+        matriceEDP[i,i] = 1.0
+        matriceEDP[i,i+1] = -(CFL/2.0)
+    
+    print(matriceEDP)
+    
+    # Initialisation conditions initiales
+    for i in range(int(0.1 * N), int(0.2 * N)):
+        phiCurrent[i] = 1.0
+    phiInit = phiCurrent
+    
+    # Calcul de la solution
+    
+    for i in range(NbrIteration):
+        phiCurrent = np.dot(matriceEDP,phiCurrent)
+    
+    return phiCurrent 
 ## Etude CFL
     
 def Etude_CFL(EDP_Function, CFL_graph, NbrIteration = 70):
@@ -128,7 +162,7 @@ def Etude_Temporelle(EDP_Function, NbrIteration_graph, CFL):
 
 ## Interface utilisateur
 
-MODE_Selection = 4
+MODE_Selection = 8
 
 if MODE_Selection == 1: # Etude temporelle : ordre 1 decentre arriere
     CFL = 0.2
@@ -150,9 +184,19 @@ if MODE_Selection == 4: # Etude CFL : ordre 1 decentre avant
 
 if MODE_Selection == 5: # Etude temporelle : ordre 2 decentre arriere
     CFL = 0.2
-    NbrIteration_graph = [0,50,100,150,200]
+    NbrIteration_graph =  [0,50,100,150,200]
+    #NbrIteration_graph =  [0,1,2,3,4,5,6,7,8,9]
     Etude_Temporelle(GetSolution_Ordre2_DecentreGauche,NbrIteration_graph,CFL)
     
 if MODE_Selection == 6: # Etude CFL : ordre 2 decentre arriere
-    CFL_graph = [-2.0]
+    CFL_graph = [2.0, 1.6, 1.2, 0.8, 0.4]
     Etude_CFL(GetSolution_Ordre2_DecentreGauche,CFL_graph)
+
+if MODE_Selection == 7: # Etude temporelle : ordre 2 centre
+    CFL = 0.2
+    NbrIteration_graph =  [0,50,100,150,200]
+    Etude_Temporelle(GetSolution_Ordre2_Centre,NbrIteration_graph,CFL)
+    
+if MODE_Selection == 8: # Etude CFL : ordre 2 centre
+    CFL_graph = [0.1]
+    Etude_CFL(GetSolution_Ordre2_Centre,CFL_graph)
