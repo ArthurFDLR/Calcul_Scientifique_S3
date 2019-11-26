@@ -10,7 +10,7 @@ import matplotlib.pyplot as plt
 #        int N     : Nombre d'intervalles de discretisation
 # OUT  # np.array  : Matrice de calcul de taille N*N 
 #      # float CFL 
-def Get_Matrice_Ordre1_DecentreArriere(CFL, N):
+def Get_Solver_Ordre1_DecentreArriere(CFL, N):
     out = np.array(N*[N*[0.0]])
     out[0,N-1] = 1
     
@@ -26,7 +26,7 @@ def Get_Matrice_Ordre1_DecentreArriere(CFL, N):
 #        int N     : Nombre d'intervalles de discretisation
 # OUT  # np.array  : Matrice de calcul de taille N*N 
 #      # float CFL 
-def Get_Matrice_Ordre1_DecentreAvant(CFL, N):
+def Get_Solver_Ordre1_DecentreAvant(CFL, N):
     out = np.array(N*[N*[0.0]])
     out[N-1,0] = 1
     
@@ -42,7 +42,7 @@ def Get_Matrice_Ordre1_DecentreAvant(CFL, N):
 #        int N     : Nombre d'intervalles de discretisation
 # OUT  # np.array  : Matrice de calcul de taille N*N 
 #      # float CFL 
-def Get_Matrice_Ordre2_DecentreArriere(CFL, N):
+def Get_Solver_Ordre2_DecentreArriere(CFL, N):
     out = np.array(N*[N*[0.0]])
     out[0,N-2] = 1
     out[1,N-1] = 1
@@ -59,7 +59,7 @@ def Get_Matrice_Ordre2_DecentreArriere(CFL, N):
 #        int N     : Nombre d'intervalles de discretisation
 # OUT  # np.array  : Matrice de calcul de taille N*N 
 #      # float CFL 
-def Get_Matrice_Ordre2_Centre(CFL, N):
+def Get_Solver_Ordre2_Centre(CFL, N):
     out = np.array(N*[N*[0.0]])
     out[0,N-1] = 1
     out[N-1,0] = 1
@@ -77,7 +77,7 @@ def Get_Matrice_Ordre2_Centre(CFL, N):
 #        int N     : Nombre d'intervalles de discretisation
 # OUT  # np.array  : Matrice de calcul de taille N*N
 #      # float CFL 
-def Get_Matrice_McCormack(CFL, N):
+def Get_Solver_McCormack(CFL, N):
     out = np.array(N*[N*[0.0]])
     out[0,N-1] = (CFL*CFL + CFL)/2.0
     out[N-1,0] = (CFL*CFL - CFL)/2.0
@@ -97,7 +97,7 @@ def Get_Matrice_McCormack(CFL, N):
 #        int N     : Nombre d'intervalles de discretisation
 # OUT  # np.array  : Matrice de calcul de taille N*N 
 #      # float CFL
-def Get_Matrice_LaxFriedrichs(CFL, N):
+def Get_Solver_LaxFriedrichs(CFL, N):
     out = np.array(N*[N*[0.0]])
     out[0,N-1] = (1.0 + CFL)/2.0
     out[N-1,0] = (1.0 - CFL)/2.0
@@ -118,10 +118,12 @@ def Get_Matrice_LaxFriedrichs(CFL, N):
 # GOAL # Donne la solution de l'equation associe au schema donne
 # IN   # (np.ndarray(N,N), float) schemaSolver : Schema de la methode sous forme matricielle et nombre CFL associe
 #        int dureeT                       : Nombre d'iteration de calcul de la solution
-#      # int tailleDomaine                : Taille du domaine en unite SI
+#      # float tailleDomaine                : Taille du domaine en unite SI
 #      # float vitesseA                   : Vitesse d'advection de l'equation
-# OUT  # (np.ndarray(N), np.ndarray(N))   : Ordonnee (solution) et abscisse (position)
-def Get_Solution(schemaSolver, dureeT = 0, tailleDomaine = 1000, vitesseA = 2.0):
+# OUT  # np.ndarray(N)                    : Ordonnee (solution)
+#        np.ndarray(N)                    : Abscisse (position)
+#        float                            : Duree finale
+def Get_Solution(schemaSolver, dureeT = 0, tailleDomaine = 1.0, vitesseA = 2.0):
     matriceEDP = schemaSolver[0]
     CFL = schemaSolver[1]
     N = matriceEDP.shape[0]
@@ -137,8 +139,13 @@ def Get_Solution(schemaSolver, dureeT = 0, tailleDomaine = 1000, vitesseA = 2.0)
     for i in range(dureeT):
         phiCurrent = np.dot(matriceEDP,phiCurrent)
     
-    return phiCurrent, position
+    return phiCurrent, position, dureeT * deltaT
 
+def Show_EvolutionTemporelle(schemaSolver):
+    for i in range(10):
+        sol, pos, duree = Get_Solution(schemaSolver(0.5, 1000), i*100)
+        plt.plot(pos, sol, alpha = i * 0.1)
+    plt.show()
 ## Methodes
 
 def GetSolution_Ordre1_DecentreArriere(CFL, NbrIteration = 500, L = 10, N = 500, paramA = 2.0):
@@ -377,9 +384,7 @@ def Etude_Temporelle(EDP_Function, NbrIteration_graph, CFL):
 MODE_Selection = 0
 
 if MODE_Selection == 0:
-    sol, pos = Get_Solution(Get_Matrice_Ordre1_DecentreArriere(0.5, 1000), 50,10,1.0)
-    plt.plot(pos,sol)
-    plt.show()
+    Show_EvolutionTemporelle(Get_Solver_Ordre1_DecentreArriere)
 
 if MODE_Selection == 1: # Etude temporelle : ordre 1 decentre arriere
     CFL = 0.2
