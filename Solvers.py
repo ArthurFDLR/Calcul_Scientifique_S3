@@ -16,8 +16,7 @@ def Get_Solver_Ordre1_DecentreArriere(CFL, N):
     for i in range(1,N):
         out[i,i-1] = CFL
         out[i,i] = 1.0 - CFL
-    
-    print(out)
+
     return out,CFL
 
 # GOAL # Donne la matrice de calcul de l'equation d'advection par un schema decentre avant d'ordre 1
@@ -33,7 +32,6 @@ def Get_Solver_Ordre1_DecentreAvant(CFL, N):
         out[i,i+1] = -CFL
         out[i,i] = 1.0 + CFL
 
-    print(out)
     return out,CFL
 
 # GOAL # Donne la matrice de calcul de l'equation d'advection par un schema decentre arriere d'ordre 2
@@ -50,7 +48,6 @@ def Get_Solver_Ordre2_DecentreArriere(CFL, N):
         out[i,i-2] = (CFL/2.0)
         out[i,i] = 1.0 - (CFL/2.0)
 
-    print(out)
     return out,CFL
 
 # GOAL # Donne la matrice de calcul de l'equation d'advection par un schema centre d'ordre 2
@@ -68,7 +65,6 @@ def Get_Solver_Ordre2_Centre(CFL, N):
         out[i,i] = 1.0
         out[i,i+1] = -(CFL/2.0)
 
-    print(out)
     return out,CFL
 
 # GOAL # Donne la matrice de calcul de l'equation d'advection par un schema de Mac Cormack
@@ -88,7 +84,6 @@ def Get_Solver_McCormack(CFL, N):
     for i in range(0,N-1):
         out[i,i+1] = (CFL*CFL - CFL)/2.0
 
-    print(out)
     return out,CFL
 
 # GOAL # Donne la matrice de calcul de l'equation d'advection par un schema de Lax Friedrichs
@@ -106,7 +101,6 @@ def Get_Solver_LaxFriedrichs(CFL, N):
     for i in range(0,N-1):
         out[i,i+1] = (1.0 - CFL)/2.0
 
-    print(out)
     return out,CFL
 
 
@@ -139,3 +133,40 @@ def Get_Solution(solver, dureeT = 0, tailleDomaine = 1.0, vitesseA = 2.0):
         phiCurrent = np.dot(matriceEDP,phiCurrent)
     
     return phiCurrent, position, dureeT * deltaT
+
+# GOAL # Donne les solution de l'equation associe au schema donne pour differents nombres d'iterations
+# IN   # (np.ndarray(N,N), float) solver        : Schema de la methode sous forme matricielle et nombre CFL associe (cf. Get_Solver_...)
+#      # list(int)                              : Iteration auquelles on souhaite le resultat
+#      # float tailleDomaine                    : Taille du domaine en unite SI
+#      # float vitesseA                         : Vitesse d'advection de l'equation
+# OUT  # list(np.ndarray(N))                    : Abscisses (position)
+#      # np.ndarray(N)                          : Ordonnee (solution)
+#      # float                                  : Duree finale
+def Get_Multiple_Solution(solver, iterationStop, tailleDomaine = 1.0, vitesseA = 2.0):
+    matriceEDP = solver[0]
+    CFL = solver[1]
+    N = matriceEDP.shape[0]
+
+    deltaX = tailleDomaine / N
+    deltaT = deltaX * (CFL / vitesseA)
+
+    position = np.linspace(0.0,tailleDomaine,N)
+
+    phiCurrent = np.array(N*[0.0]) # Condition initiales
+    for i in range(int(0.1 * N), int(0.2 * N)): 
+        phiCurrent[i] = 1.0
+    
+    out = []
+
+    limitIteration = max(iterationStop)
+    for i in range(limitIteration+1):
+        phiCurrent = np.dot(matriceEDP,phiCurrent)
+        if i in iterationStop:
+            out.append(phiCurrent)
+    return out, position, limitIteration * deltaT
+
+'''
+schemaSolver = Get_Solver_Ordre1_DecentreArriere
+listSol, pos, duree = Get_Multiple_Solution(schemaSolver(0.5, 1000), [50,100,150])
+print(listSol)
+'''
