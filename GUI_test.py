@@ -7,6 +7,7 @@ from matplotlib.backends.backend_qt5agg import FigureCanvasQTAgg as FigureCanvas
 from matplotlib.backends.backend_qt5agg import NavigationToolbar2QT as NavigationToolbar
 from matplotlib.figure import Figure
 import matplotlib.pyplot as plt
+plt.style.use('ggplot')
 
 class WidgetPlot(QWidget):
     def __init__(self, *args, **kwargs):
@@ -30,17 +31,24 @@ class PlotCanvas(FigureCanvas):
         self.ax.plot(dataInit, 'r-', linewidth = 0.5)
         #self.ax.set_title("Solution")
         self.draw()
-
-    def UpdatePlot(self, CSV, nbrIter, traceLongueur, traceEspacement):
+    
+    # GOAL # Actualise le graph du canvas
+    # IN   # flaot CFL           : Nombre CFL du schema de resolution
+    #      # int nbrIter         : Nombre d'iteration souhaité lors de la resolution
+    #      # int traceLongueur   : Nombre de courbes composant la trace
+    #      # int traceEspacement : Duree d'affichage de la solution dans le passe par la trace (pourcentage [0,100] de la duree totale)
+    def UpdatePlot(self, CSV, schemaSolver, nbrIter, traceLongueur, traceEspacement):
         self.ax.cla()
-        schemaSolver = Solvers.Get_Solver_Ordre1_DecentreArriere
-        tailleDomaine = 500
-        iterationTrace = [int(nbrIter * (traceEspacement/100) + nbrIter * ((100-traceEspacement)/100) * (i/(traceLongueur-1))) for i in range(traceLongueur)]
+        tailleDomaine = 1000
+        if traceLongueur == 1:
+            iterationTrace = [nbrIter]
+        else :
+            iterationTrace = [int(nbrIter * (traceEspacement/100) + nbrIter * ((100-traceEspacement)/100) * (i/(traceLongueur-1))) for i in range(traceLongueur)]
         listSol, pos, duree = Solvers.Get_Multiple_Solution(schemaSolver(CSV, tailleDomaine), iterationTrace)
 
         for i in range(len(listSol)):
-            self.ax.plot(pos, listSol[i], 'r-', linewidth = 0.5, alpha = 0.5)
-
+            self.ax.plot(pos, listSol[i], 'k-', linewidth = 2, alpha = i / len(listSol))
+        self.ax.set_title(r"$ \frac{\partial \Phi}{\partial t} + a \ \frac{\partial \Phi}{\partial x}$  %s  $a = 2 m.s^{-1}$  %s $ x \in [0,1] $  %s %s s" % ("\t","\t","\t",str(duree)), fontsize=20)
         self.draw()
 
 class MainWindow(QWidget):
@@ -48,6 +56,10 @@ class MainWindow(QWidget):
     def __init__(self):
         super().__init__()
         self.initUI()
+
+        # Pour generer le premier graph aux positions par default
+        self.UpdateParameters()
+        self.UpdateGraph()
     
     # Update CSV, dureeIteration et dureeIteration puis les affiche
     def UpdateParameters(self):
@@ -60,13 +72,26 @@ class MainWindow(QWidget):
         self.dureeTrace = self.sliderTraceDuree.value()
         self.valueTraceDuree.setText(str(self.dureeTrace))
 
-        self.espacementTrace = self.sliderTraceEspacement.value()
-        self.valueTraceEspacement.setText(str(self.espacementTrace))
+        self.espacementTrace = 100 - self.sliderTraceEspacement.value()
+        self.valueTraceEspacement.setText(str(100 - self.espacementTrace))
 
+        solverIndex = self.schemaSelection.currentIndex()
+        if solverIndex == 0:
+            self.schemaSolver = Solvers.Get_Solver_Ordre1_DecentreArriere
+        elif solverIndex == 1:
+            self.schemaSolver = Solvers.Get_Solver_Ordre1_DecentreAvant
+        elif solverIndex == 2:
+            self.schemaSolver = Solvers.Get_Solver_Ordre2_DecentreArriere
+        elif solverIndex == 3:
+            self.schemaSolver = Solvers.Get_Solver_Ordre2_Centre
+        elif solverIndex == 4:
+            self.schemaSolver = Solvers.Get_Solver_McCormack
+        elif solverIndex == 5:
+            self.schemaSolver = Solvers.Get_Solver_LaxFriedrichs
 
     def UpdateGraph(self):
         print("Graph updated")
-        self.plotFrame.canvas.UpdatePlot(self.CSV, self.dureeIteration, self.dureeTrace, self.espacementTrace)
+        self.plotFrame.canvas.UpdatePlot(self.CSV, self.schemaSolver, self.dureeIteration, self.dureeTrace, self.espacementTrace)
 
 
     def initUI(self):
@@ -92,6 +117,9 @@ class MainWindow(QWidget):
         self.schemaSelection.addItem("Lax-Friecrichs")
         self.schemaSelection.addItem("Warming Beam amont")
         gridParameters.addWidget(self.schemaSelection, 0,1)
+        self.schemaSelection.currentIndexChanged.connect(self.UpdateParameters)
+        self.schemaSelection.currentIndexChanged.connect(self.UpdateGraph)
+        print(self.schemaSelection.currentIndex())
 
         #CSV
         self.lineCSV = QLabel("CSV",self)
@@ -100,6 +128,7 @@ class MainWindow(QWidget):
         self.sliderCSV = QSlider(Qt.Horizontal)
         gridParameters.addWidget(self.sliderCSV, 1,1)
         self.sliderCSV.setMaximum(300)
+        self.sliderCSV.setValue(25)
         self.sliderCSV.valueChanged.connect(self.UpdateParameters)
         self.sliderCSV.sliderReleased.connect(self.UpdateGraph)
 
@@ -117,7 +146,8 @@ class MainWindow(QWidget):
 
         self.sliderDuree = QSlider(Qt.Horizontal)
         gridParameters.addWidget(self.sliderDuree, 2,1)
-        self.sliderDuree.setMaximum(1000)
+        self.sliderDuree.setMaximum(10000)
+        self.sliderDuree.setValue(500)
         self.sliderDuree.valueChanged.connect(self.UpdateParameters)
         self.sliderDuree.sliderReleased.connect(self.UpdateGraph)
 
@@ -131,7 +161,8 @@ class MainWindow(QWidget):
         self.sliderTraceDuree = QSlider(Qt.Horizontal)
         gridParameters.addWidget(self.sliderTraceDuree, 3,1)
         self.sliderTraceDuree.setMaximum(20)
-        self.sliderTraceDuree.setMinimum(2)
+        self.sliderTraceDuree.setMinimum(1)
+        self.sliderTraceDuree.setValue(10)
         self.sliderTraceDuree.valueChanged.connect(self.UpdateParameters)
         self.sliderTraceDuree.sliderReleased.connect(self.UpdateGraph)
 
@@ -144,12 +175,12 @@ class MainWindow(QWidget):
 
         self.sliderTraceEspacement = QSlider(Qt.Horizontal)
         gridParameters.addWidget(self.sliderTraceEspacement, 4,1)
+        self.sliderTraceEspacement.setValue(80)
         self.sliderTraceEspacement.valueChanged.connect(self.UpdateParameters)
         self.sliderTraceEspacement.sliderReleased.connect(self.UpdateGraph)
 
         self.valueTraceEspacement = QLabel("0",self)
         gridParameters.addWidget(self.valueTraceEspacement, 4,2)
-        
 
         ####################################
         ## Definition des la page globale ##
