@@ -37,14 +37,14 @@ class PlotCanvas(FigureCanvas):
     #      # int nbrIter         : Nombre d'iteration souhaité lors de la resolution
     #      # int traceLongueur   : Nombre de courbes composant la trace
     #      # int traceEspacement : Duree d'affichage de la solution dans le passe par la trace (pourcentage [0,100] de la duree totale)
-    def UpdatePlot(self, CSV, schemaSolver, nbrIter, traceLongueur, traceEspacement):
+    def UpdatePlot(self, CFL, schemaSolver, nbrIter, traceLongueur, traceEspacement):
         self.ax.cla()
         tailleDomaine = 1000
         if traceLongueur == 1:
             iterationTrace = [nbrIter]
         else :
             iterationTrace = [int(nbrIter * (traceEspacement/100) + nbrIter * ((100-traceEspacement)/100) * (i/(traceLongueur-1))) for i in range(traceLongueur)]
-        listSol, pos, duree = Solvers.Get_Multiple_Solution(schemaSolver(CSV, tailleDomaine), iterationTrace)
+        listSol, pos, duree = Solvers.Get_Multiple_Solution(schemaSolver(CFL, tailleDomaine), iterationTrace)
 
         for i in range(len(listSol)):
             self.ax.plot(pos, listSol[i], 'k-', linewidth = 2, alpha = i / len(listSol))
@@ -61,15 +61,15 @@ class MainWindow(QWidget):
         self.UpdateParameters()
         self.UpdateGraph()
     
-    # Update CSV, dureeIteration et dureeIteration puis les affiche
+    # Update CFL, dureeIteration et dureeIteration puis les affiche
     def UpdateParameters(self):
-        self.CSV = (1.0,-1.0)[self.signCSV.isChecked()] * self.sliderCSV.value()/100.0
-        self.valueCSV.setText(str(self.CSV))
+        self.CFL = (1.0,-1.0)[self.signCFL.isChecked()] * self.sliderCFL.value()/100.0
+        self.valueCFL.setText(str(self.CFL))
 
         self.dureeIteration = self.sliderDuree.value()
         self.valueDuree.setText(str(self.dureeIteration))
 
-        self.dureeTrace = self.sliderTraceDuree.value()
+        self.dureeTrace = int(10 ** (self.sliderTraceDuree.value() / 10.0))
         self.valueTraceDuree.setText(str(self.dureeTrace))
 
         self.espacementTrace = 100 - self.sliderTraceEspacement.value()
@@ -91,8 +91,11 @@ class MainWindow(QWidget):
 
     def UpdateGraph(self):
         print("Graph updated")
-        self.plotFrame.canvas.UpdatePlot(self.CSV, self.schemaSolver, self.dureeIteration, self.dureeTrace, self.espacementTrace)
-
+        self.plotFrame.canvas.UpdatePlot(self.CFL, self.schemaSolver, self.dureeIteration, self.dureeTrace, self.espacementTrace)
+    
+    def ShowRangeCFL(self):
+        self.UpdateParameters()
+        Solvers.Show_MaxCFL(self.schemaSolver)
 
     def initUI(self):
         
@@ -119,26 +122,30 @@ class MainWindow(QWidget):
         gridParameters.addWidget(self.schemaSelection, 0,1)
         self.schemaSelection.currentIndexChanged.connect(self.UpdateParameters)
         self.schemaSelection.currentIndexChanged.connect(self.UpdateGraph)
-        print(self.schemaSelection.currentIndex())
+        #print(self.schemaSelection.currentIndex())
 
-        #CSV
-        self.lineCSV = QLabel("CSV",self)
-        gridParameters.addWidget(self.lineCSV, 1,0)
+        self.getCFLbutton = QPushButton("Voir intervalle CFL", self)
+        gridParameters.addWidget(self.getCFLbutton, 0,2)
+        self.getCFLbutton.clicked.connect(self.ShowRangeCFL)
 
-        self.sliderCSV = QSlider(Qt.Horizontal)
-        gridParameters.addWidget(self.sliderCSV, 1,1)
-        self.sliderCSV.setMaximum(300)
-        self.sliderCSV.setValue(25)
-        self.sliderCSV.valueChanged.connect(self.UpdateParameters)
-        self.sliderCSV.sliderReleased.connect(self.UpdateGraph)
+        #CFL
+        self.lineCFL = QLabel("CFL",self)
+        gridParameters.addWidget(self.lineCFL, 1,0)
 
-        self.valueCSV = QLabel("0",self)
-        gridParameters.addWidget(self.valueCSV, 1,2)
+        self.sliderCFL = QSlider(Qt.Horizontal)
+        gridParameters.addWidget(self.sliderCFL, 1,1)
+        self.sliderCFL.setMaximum(300)
+        self.sliderCFL.setValue(25)
+        self.sliderCFL.valueChanged.connect(self.UpdateParameters)
+        self.sliderCFL.sliderReleased.connect(self.UpdateGraph)
 
-        self.signCSV = QCheckBox("Negatif",self)
-        gridParameters.addWidget(self.signCSV, 1,3)
-        self.signCSV.stateChanged.connect(self.UpdateParameters)
-        self.signCSV.stateChanged.connect(self.UpdateGraph)
+        self.valueCFL = QLabel("0",self)
+        gridParameters.addWidget(self.valueCFL, 1,2)
+
+        self.signCFL = QCheckBox("Negatif",self)
+        gridParameters.addWidget(self.signCFL, 1,3)
+        self.signCFL.stateChanged.connect(self.UpdateParameters)
+        self.signCFL.stateChanged.connect(self.UpdateGraph)
 
         #Duree (iteration)
         self.lineDuree = QLabel("Nombre d'iteration",self)
@@ -160,8 +167,8 @@ class MainWindow(QWidget):
 
         self.sliderTraceDuree = QSlider(Qt.Horizontal)
         gridParameters.addWidget(self.sliderTraceDuree, 3,1)
-        self.sliderTraceDuree.setMaximum(20)
-        self.sliderTraceDuree.setMinimum(1)
+        self.sliderTraceDuree.setMaximum(30)
+        self.sliderTraceDuree.setMinimum(0)
         self.sliderTraceDuree.setValue(10)
         self.sliderTraceDuree.valueChanged.connect(self.UpdateParameters)
         self.sliderTraceDuree.sliderReleased.connect(self.UpdateGraph)

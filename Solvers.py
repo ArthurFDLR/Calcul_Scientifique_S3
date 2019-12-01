@@ -1,5 +1,6 @@
 import numpy as np
 import matplotlib.pyplot as plt
+import math
 ######################################
 ## Definitions matrices de calcules ##
 ######################################
@@ -41,12 +42,18 @@ def Get_Solver_Ordre1_DecentreAvant(CFL, N):
 #      # float CFL 
 def Get_Solver_Ordre2_DecentreArriere(CFL, N):
     out = np.array(N*[N*[0.0]])
-    out[0,N-2] = 1
-    out[1,N-1] = 1
-    
+    out[0,N-2] = - (CFL / 2.0)
+    out[0,N-1] = CFL * 2.0
+    out[1,N-1] = - (CFL / 2.0)
+
+    for i in range(N):
+        out[i,i] = 1.0 - ((3.0 * CFL)/2.0)
+
+    for i in range(1,N):
+        out[i,i-1] = CFL * 2.0
+
     for i in range(2,N):
-        out[i,i-2] = (CFL/2.0)
-        out[i,i] = 1.0 - (CFL/2.0)
+        out[i,i-2] = - (CFL / 2.0)
 
     return out,CFL
 
@@ -93,13 +100,16 @@ def Get_Solver_McCormack(CFL, N):
 #      # float CFL
 def Get_Solver_LaxFriedrichs(CFL, N):
     out = np.array(N*[N*[0.0]])
-    out[0,N-1] = (1.0 + CFL)/2.0
-    out[N-1,0] = (1.0 - CFL)/2.0
+
+    out[0,N-1] = (CFL*CFL + CFL)/2.0
+    out[N-1,0] = (CFL*CFL - CFL)/2.0
     
     for i in range(1,N):
-        out[i,i-1] = (1.0 + CFL)/2.0
+        out[i,i-1] = (CFL*CFL + CFL)/2.0
     for i in range(0,N-1):
-        out[i,i+1] = (1.0 - CFL)/2.0
+        out[i,i+1] = (CFL*CFL - CFL)/2.0
+    for i in range(N):
+        out[i,i] = 1.0 - (CFL*CFL)
 
     return out,CFL
 
@@ -165,7 +175,32 @@ def Get_Multiple_Solution(solver, iterationStop, tailleDomaine = 1.0, vitesseA =
             out.append(phiCurrent)
     return out, position, limitIteration * deltaT
 
+def Show_MaxCFL(solver, NbrIteration = 20):
+    tailleDomaine = 100
+    maxSolList = []
+    CFLList = []
+    for i in range(-25, 25, 1):
+        CFL = (i+0.5)/10
+        sol, pos, duree = Get_Solution(solver(CFL,tailleDomaine), NbrIteration)
+        maxSolList.append(abs(max(sol, key=abs)))
+        CFLList.append(CFL)
+    plt.plot(CFLList,maxSolList)
+    plt.yscale("log")
+    plt.xlabel(r"$ CFL$", fontsize=15)
+    plt.ylabel(r"$ max_{ \{i \in \mathbb{N} \} } \ ( \Phi_{i}^{N} ) $", fontsize=15)
+    plt.title("Intervalle de stabilité : $ N=100 $, $a = 2 m.s^{-1}$, $ x \in [0,1] $", fontsize=18)
+    plt.xticks(np.arange(-2.5, 2.5, 0.2))
+    plt.show()
+
+def Show_matrice(solver, CFL):
+    matrice, out = solver(CFL, 6)
+    print(matrice)
+
 '''
+Show_matrice(Get_Solver_LaxFriedrichs, 0.5)
+
+Show_MaxCFL(Get_Solver_Ordre1_DecentreAvant)
+
 schemaSolver = Get_Solver_Ordre1_DecentreArriere
 listSol, pos, duree = Get_Multiple_Solution(schemaSolver(0.5, 1000), [50,100,150])
 print(listSol)
