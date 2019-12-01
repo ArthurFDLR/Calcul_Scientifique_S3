@@ -101,18 +101,36 @@ def Get_Solver_McCormack(CFL, N):
 def Get_Solver_LaxFriedrichs(CFL, N):
     out = np.array(N*[N*[0.0]])
 
-    out[0,N-1] = (CFL*CFL + CFL)/2.0
-    out[N-1,0] = (CFL*CFL - CFL)/2.0
+    out[0,N-1] = (1.0 + CFL)/2.0
+    out[N-1,0] = (1.0 - CFL)/2.0
     
     for i in range(1,N):
-        out[i,i-1] = (CFL*CFL + CFL)/2.0
+        out[i,i-1] = (1.0 + CFL)/2.0
     for i in range(0,N-1):
-        out[i,i+1] = (CFL*CFL - CFL)/2.0
-    for i in range(N):
-        out[i,i] = 1.0 - (CFL*CFL)
+        out[i,i+1] = (1.0 - CFL)/2.0
 
     return out,CFL
 
+# GOAL # Donne la matrice de calcul de l'equation d'advection par un schema de Beam-Warmimg
+# IN   # float CFL : Nombre CFL associe a la methode
+#        int N     : Nombre d'intervalles de discretisation
+# OUT  # np.array  : Matrice de calcul de taille N*N 
+#      # float CFL
+def Get_Solver_BeamWarmimg(CFL, N):
+    out = np.array(N*[N*[0.0]])
+
+    out[0,N-2] = (CFL * (CFL - 1.0)) / 2.0
+    out[0,N-1] = CFL * (2.0 - CFL)
+    out[1,N-1] = (CFL * (CFL - 1.0)) / 2.0
+    
+    for i in range(N):
+        out[i,i] = ((CFL - 1.0) * (CFL - 2.0)) / 2.0
+    for i in range(1,N):
+        out[i,i-1] = CFL * (2.0 - CFL)
+    for i in range(2,N):
+        out[i,i-2] = (CFL * (CFL - 1.0)) / 2.0
+
+    return out,CFL
 
 ########################
 ## Etude des methodes ##
@@ -175,12 +193,12 @@ def Get_Multiple_Solution(solver, iterationStop, tailleDomaine = 1.0, vitesseA =
             out.append(phiCurrent)
     return out, position, limitIteration * deltaT
 
-def Show_MaxCFL(solver, NbrIteration = 20):
-    tailleDomaine = 100
+def Show_MaxCFL(solver, NbrIteration = 50):
+    tailleDomaine = 50
     maxSolList = []
     CFLList = []
-    for i in range(-25, 25, 1):
-        CFL = (i+0.5)/10
+    for i in range(100):
+        CFL = i/40
         sol, pos, duree = Get_Solution(solver(CFL,tailleDomaine), NbrIteration)
         maxSolList.append(abs(max(sol, key=abs)))
         CFLList.append(CFL)
@@ -189,7 +207,7 @@ def Show_MaxCFL(solver, NbrIteration = 20):
     plt.xlabel(r"$ CFL$", fontsize=15)
     plt.ylabel(r"$ max_{ \{i \in \mathbb{N} \} } \ ( \Phi_{i}^{N} ) $", fontsize=15)
     plt.title("Intervalle de stabilité : $ N=100 $, $a = 2 m.s^{-1}$, $ x \in [0,1] $", fontsize=18)
-    plt.xticks(np.arange(-2.5, 2.5, 0.2))
+    plt.xticks(np.arange(0.0, 2.5, 0.2))
     plt.show()
 
 def Show_matrice(solver, CFL):
@@ -197,7 +215,8 @@ def Show_matrice(solver, CFL):
     print(matrice)
 
 '''
-Show_matrice(Get_Solver_LaxFriedrichs, 0.5)
+Show_matrice(Get_Solver_BeamWarmimg, 0.5)
+Show_matrice(Get_Solver_Ordre1_DecentreArriere, 0.5)
 
 Show_MaxCFL(Get_Solver_Ordre1_DecentreAvant)
 

@@ -88,6 +88,8 @@ class MainWindow(QWidget):
             self.schemaSolver = Solvers.Get_Solver_McCormack
         elif solverIndex == 5:
             self.schemaSolver = Solvers.Get_Solver_LaxFriedrichs
+        elif solverIndex == 6:
+            self.schemaSolver = Solvers.Get_Solver_BeamWarmimg
 
     def UpdateGraph(self):
         print("Graph updated")
@@ -202,7 +204,7 @@ class MainWindow(QWidget):
         self.setGeometry(300, 300, 350, 300)
         self.setWindowTitle('Review')    
         self.show()
-        
+
 
 if __name__ == '__main__':
     
