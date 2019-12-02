@@ -46,8 +46,11 @@ class PlotCanvas(FigureCanvas):
             iterationTrace = [int(nbrIter * (traceEspacement/100) + nbrIter * ((100-traceEspacement)/100) * (i/(traceLongueur-1))) for i in range(traceLongueur)]
         listSol, pos, duree = Solvers.Get_Multiple_Solution(schemaSolver(CFL, tailleDomaine), iterationTrace)
 
-        for i in range(len(listSol)):
-            self.ax.plot(pos, listSol[i], 'k-', linewidth = 2, alpha = i / len(listSol))
+        for i in range(len(listSol)-1):
+            a = i / len(listSol)
+            self.ax.plot(pos, listSol[i], 'k-', linewidth = 1.0, alpha = a/2.0)
+        self.ax.plot(pos, listSol[len(listSol)-1], 'k-', linewidth = 2, alpha = 1.0)
+
         self.ax.set_title(r"$ \frac{\partial \Phi}{\partial t} + a \ \frac{\partial \Phi}{\partial x}$  %s  $a = 2 m.s^{-1}$  %s $ x \in [0,1] $  %s %s s" % ("\t","\t","\t",str(duree)), fontsize=20)
         self.draw()
 
@@ -202,7 +205,7 @@ class MainWindow(QWidget):
         
         self.setLayout(layoutMain)         
         self.setGeometry(300, 300, 350, 300)
-        self.setWindowTitle('Review')    
+        self.setWindowTitle("Etude de l\'equation d\'advection")    
         self.show()
 
 
