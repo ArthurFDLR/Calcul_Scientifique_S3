@@ -1,6 +1,7 @@
 import numpy as np
 import matplotlib.pyplot as plt
 import math
+
 ######################################
 ## Definitions matrices de calcules ##
 ######################################
@@ -213,14 +214,3 @@ def Show_MaxCFL(solver, NbrIteration = 50):
 def Show_matrice(solver, CFL):
     matrice, out = solver(CFL, 6)
     print(matrice)
-
-'''
-Show_matrice(Get_Solver_BeamWarmimg, 0.5)
-Show_matrice(Get_Solver_Ordre1_DecentreArriere, 0.5)
-
-Show_MaxCFL(Get_Solver_Ordre1_DecentreAvant)
-
-schemaSolver = Get_Solver_Ordre1_DecentreArriere
-listSol, pos, duree = Get_Multiple_Solution(schemaSolver(0.5, 1000), [50,100,150])
-print(listSol)
-'''
